@@ -1,1 +1,583 @@
-<h1> ugly </h1>
+<head>
+	<title>! L1NK !</title>
+	<meta charset="UTF-8">
+</head>
+<body>
+<br>
+<canvas id="myCanvas" width="700" height="500" style="border:1px solid #cccccc;"></canvas>
+
+<script type="text/javascript">
+
+class Sprite
+{
+	constructor(x1, y1, w1, image_url)
+	{
+		this.x = x1;
+		this.y = y1;
+		this.w = w1;
+		this.image = new Image();
+		this.image.src = image_url;
+	}
+	
+	move(dx, dy)
+	{
+		this.x = this.x + dx;
+		this.y = this.y + dy;
+	}
+
+	spriteType()
+	{
+		return -1;
+	}
+
+	isColliding(sprite)
+	{
+		let thisToes = this.y + this.imageHeight;
+		let thisHead = this.y;
+		let thisLeft = this.x;
+		let thisRight = this.x + this.imageWidth; 
+		let otherTop = sprite.y - scrollPosY;
+		let otherBottom = sprite.y - scrollPosY + sprite.imageHeight;
+		let otherLeft = sprite.x - scrollPosX;
+		let otherRight = sprite.x - scrollPosX + sprite.imageWidth;
+
+		if ((this.spriteType() == 2) || (this.spriteType() == 3)) {
+			thisToes -= scrollPosY;
+ 			thisHead -= scrollPosY;
+ 			thisLeft -= scrollPosX;
+ 			thisRight -= scrollPosX;
+		}
+		if ((thisToes < otherTop || thisHead > otherBottom) || (thisRight < otherLeft || thisLeft > otherRight)) {
+ 			return false;
+
+ 		}
+ 		else {
+
+ 		}
+ 		return true;
+	}
+	draw(canvas) {
+		canvas.drawImage(this.image, this.x, this.y);
+	}
+}
+
+class Brick extends Sprite
+{
+	constructor(x, y, w, image_url)
+	{
+		super(x, y, w, image_url);
+		this.imageHeight = 50;
+		this.imageWidth = 50;
+	}
+	
+	update() //sit_still
+	{
+	
+	}
+	
+	onclick(x,y)
+	{
+		//console.log("brick x: ",this.x,"y: ", this.y)
+	}
+
+	spriteType()
+	{
+		return 0;
+	}
+	draw(canvas) {
+		canvas.drawImage(this.image, this.x-scrollPosX, this.y-scrollPosY);
+	}
+
+}
+
+class Pot extends Sprite {
+	constructor(x, y, w, image_url) {
+		super(x, y, w, image_url);
+		this.brokenImage = new Image();
+		this.brokenImage.src = "pot_broken.png";
+		this.broken = false;
+		this.readyToDelete = false;
+		this.countdown = 50;
+		this.direction = 0;
+		this.speed = 10;
+		this.imageHeight = 48; 
+		this.imageWidth = 48;
+	}
+	update() {
+		if (this.broken) {
+			this.image = this.brokenImage;
+			this.direction = 0;
+			this.speed = 0;
+			this.countdown--;
+			if (this.countdown <= 0) {
+				this.readyToDelete = true;
+			}
+		}
+
+		switch(this.direction) {
+			case 0:
+				break;
+			case 1:
+				this.x -= this.speed;
+				break;
+			case 2:
+				this.x += this.speed;
+				break;
+			case 3:
+				this.y -= this.speed;
+				break;
+			case 4:
+				this.y += this.speed;
+				break;
+		}
+	}
+
+	draw(canvas) {
+		canvas.drawImage(this.image, this.x-scrollPosX, this.y-scrollPosY);
+	}
+
+	spriteType() {
+		return 3;
+	}
+
+	onclick(x, y) {
+
+	}
+}
+
+
+class Boomerang extends Sprite
+{
+	constructor(x, y, direction, image_url) {
+		super(x, y, 12, image_url);
+		this.direction = direction;
+		this.speed = 15;
+		this.imageHeight = 12; 
+		this.imageWidth = 12;
+	}
+
+	update() {
+		switch(this.direction) {
+			case 1: 
+				this.x -= this.speed;
+				break;
+			case 2:
+				this.x += this.speed;
+				break;
+			case 3:
+				this.y -= this.speed;
+				break;
+			case 4:
+				this.y += this.speed;
+				break;
+		}
+	}
+	draw(canvas) {
+		canvas.drawImage(this.image, this.x-scrollPosX, this.y-scrollPosY);
+		//console.log("hi")
+	}
+
+	spriteType() {
+		return 2;
+	}
+	onclick(x, y) {
+
+	}
+}
+
+class Link extends Sprite
+{
+	constructor(x, y, w, image_url)
+	{
+		super(x, y, w, image_url);
+		this.speed = 5;
+		this.direction = 0;
+		this.isMoving = false;
+		this.prevx = this.x;
+		this.prevy = this.y;
+		this.imageHeight = 80; 
+		this.imageWidth = 68;
+		this.imageIterator = 0;
+		this.animateImages = [];
+		this.direction = 4; //0 is default, 1 is left, 2 is right, 3 is up, 4 is down
+
+		//Load in image sources to array
+		for (let i = 50; i < 60; i++) {
+			this.animateImages.push("tile0" + i + ".png");
+		}
+		for (let i = 70; i < 80; i++) {
+			this.animateImages.push("tile0" + i + ".png")
+		}
+		for (let i = 60; i < 70; i++) {
+			this.animateImages.push("tile0" + i + ".png")
+		}
+		for (let i = 40; i < 50; i++) {
+			this.animateImages.push("tile0" + i + ".png")
+		}
+
+		//"Preload" images to reduce flickering? But it doesn't work
+		for (let i = 0; i < this.animateImages.length; i++) {
+			(new Image()).src = this.animateImages[i];
+		}
+
+		
+	}
+
+	update() 
+	{
+		//Keep "preloading" images; seeems VERY unintuitive but works??
+		for (let i = 0; i < this.animateImages.length; i++) {
+			(new Image()).src = this.animateImages[i];
+		}
+		if (this.isMoving) {
+			switch(this.direction) {
+			case 0:
+				break;
+			case 1:
+				this.move(-1*this.speed, 0)
+				this.animateLeft();
+				break;
+			case 2:
+				this.move(this.speed, 0)
+				this.animateRight();
+				break;
+			case 3:
+				this.move(0, -1*this.speed)
+				this.animateUp();
+				break;
+			case 4:
+				this.move(0, this.speed)
+				this.animateDown();
+				break;
+
+
+			}
+		}
+
+	}
+
+	onclick(x,y)
+	{
+		//console.log("link x: ",this.x,"y: ", this.y)
+	}
+
+	animateLeft() {
+		if (this.imageIterator >= 10) 
+			this.imageIterator = 0;
+		this.image.src = this.animateImages[this.imageIterator];
+		this.imageIterator++;
+		//console.log(this.imageIterator)
+
+	}
+
+	animateRight() {
+		if (this.imageIterator >= 10) 
+			this.imageIterator = 0;
+		this.image.src = this.animateImages[10+this.imageIterator];
+		this.imageIterator++;
+		//console.log(this.imageIterator)
+	}
+	animateUp() {
+		if (this.imageIterator >= 10) 
+			this.imageIterator = 0;
+		this.image.src = this.animateImages[20+this.imageIterator];
+		this.imageIterator++;
+		//console.log(this.imageIterator)
+	}
+	animateDown() {
+		if (this.imageIterator >= 10) 
+			this.imageIterator = 0;
+		this.image.src = this.animateImages[30+this.imageIterator];
+		this.imageIterator++;
+		//console.log(this.imageIterator)
+	}
+
+	spriteType()
+	{
+		return 1;
+	}
+	
+	setSafeLocation() {
+		this.prevx = this.x;
+		this.prevy = this.y;
+	}
+	returnToSafeLocation() {
+		this.x = this.prevx;
+		this.y = this.prevy;
+	}
+
+	draw(canvas) {
+		canvas.drawImage(this.image, this.x, this.y);
+	}
+}
+
+
+
+
+class Model
+{
+	constructor()
+	{
+		this.sprites = [];
+		this.link = new Link(100, 100, 80, "tile000.png");
+		this.sprites.push(this.link);
+		this.bricks = [[600,0],[650,0],[550,0],[500,0],[450,0],[400,0],[350,0],[300,0],[250,0],[200,0],[150,0],[100,0],[50,0],[0,0],[0,50],[0,100],[0,150],[0,200],[0,250],[0,300],[0,350],[0,400],[0,450],[50,450],[100,450],[150,450],[400,450],[450,450],[500,450],[550,450],[600,450],[650,450],[650,400],[650,350],[650,300],[650,250],[650,200],[700,0],[750,0],[800,0],[850,0],[900,0],[950,0],[1000,0],[1050,0],[1100,0],[1150,0],[1200,0],[1250,0],[1300,0],[1350,0],[1350,50],[1350,100],[1350,150],[1350,200],[1350,250],[1350,300],[1350,350],[1350,400],[1350,450],[700,300],[700,350],[700,400],[700,450],[750,450],[800,450],[850,450],[900,450],[1150,450],[1200,450],[1250,450],[1300,450],[1350,500],[1350,550],[1350,650],[1350,700],[1350,600],[1350,750],[1350,800],[1350,850],[1350,900],[1350,950],[1300,950],[1250,950],[1200,950],[1150,950],[1100,950],[1050,950],[1000,950],[950,950],[900,950],[850,950],[800,950],[750,950],[700,950],[700,500],[750,500],[800,500],[900,500],[850,500],[1300,500],[1250,500],[1200,500],[1150,500],[700,550],[700,600],[700,200],[700,250],[700,650],[700,900],[150,500],[400,500],[650,650],[650,900],[450,500],[500,500],[550,500],[600,500],[650,500],[650,550],[650,600],[650,950],[600,950],[550,950],[500,950],[450,950],[400,950],[350,950],[300,950],[250,950],[200,950],[150,950],[100,950],[50,950],[0,950],[0,900],[0,850],[0,800],[0,700],[0,750],[0,650],[0,600],[0,550],[0,500],[50,500],[100,500],[150,550],[400,550],[400,600],[350,650],[350,600],[600,900],[600,700],[550,700],[200,700],[200,650],[350,700],[350,750],[650,700],[700,700],[200,300],[200,250],[250,250],[300,250],[350,250],[350,200],[350,150],[400,150],[450,150],[500,350],[550,350],[550,300],[200,200],[50,400],[850,250],[850,300],[900,300],[950,300],[1000,300],[1050,300],[1100,300],[1150,300],[1200,300],[1200,250],[1000,150],[850,900],[850,850],[850,800],[850,750],[850,700],[900,700],[1050,650],[1100,650],[1150,650],[1200,650],[1200,700],[1200,750],[1200,800],[1000,650],[1050,900],[1050,850],[950,650],[1050,800],[200,750],[550,900],[200,800],[900,650],[150,600],[150,650],[1100,100]]
+		this.pots = [[480,624],[96,864],[528,816],[960,816],[1152,576],[1248,96],[768,288],[288,336],[528,96]]
+		for (let i = 0; i < this.bricks.length; i++) {
+			this.sprites.push(new Brick(this.bricks[i][0], this.bricks[i][1], 51, "brick.png"));
+		}
+		for (let i = 0; i < this.pots.length; i++) {
+			this.sprites.push(new Pot(this.pots[i][0], this.pots[i][1], 48, "pot.png"));
+		}
+	}
+
+	update()
+	{
+		for(let i = 0; i < this.sprites.length; i++)
+		{
+			this.sprites[i].update();
+		}
+
+		let collisionDetected = false;
+		for (let i = 0; i < this.sprites.length; i++) {
+			if (this.sprites[i].spriteType() == 0) {
+				if (this.link.isColliding(this.sprites[i])) {
+					collisionDetected = true;
+					this.link.returnToSafeLocation();
+				}
+			}
+		}
+		if(collisionDetected == false) {
+			this.link.setSafeLocation();
+		}
+
+		//Check for boomerang collisions w/ pot or bricks; if collides with pot, break it
+		for (let i = 0; i < this.sprites.length; i++) { //iterate and search for boomerangs
+			if (this.sprites[i].spriteType() == 2) { //if sprite at i is a boomerang..
+				//console.log("boomie found");
+				for (let j = 0; j < this.sprites.length; j++) //iterate through and search for bricks
+					if ((this.sprites[j].spriteType() == 0) || (this.sprites[j].spriteType() == 3))  { //if sprite at j is a brick OR pot...
+						if(this.sprites[i].isColliding(this.sprites[j])) { //if boomerang is colliding with this sprite...
+							//console.log("collision detected")
+							//If boomerang collides with a pot, break the pot
+							if (this.sprites[j].spriteType() == 3) { //if it's specifically a pot...
+								this.sprites[j].broken = true;
+							}
+							//After boomerang collision, remove it from this.sprites list
+							this.sprites.splice(i,1);
+							break;
+						}
+					}
+			}		
+		}
+
+		//Check for removing broken pots
+		for (let i = 0; i < this.sprites.length; i++) {
+			if (this.sprites[i].spriteType() == 3) {
+				if (this.sprites[i].readyToDelete == true)
+					this.sprites.splice(i,1);
+			}
+		}
+
+		//Check if link is pushing any pots
+		for (let i = 0; i < this.sprites.length; i++) { //Iterate and search for pots
+			if (this.sprites[i].spriteType() == 3) { //If index i is a pot...
+				if (this.link.isColliding(this.sprites[i])) {
+					this.sprites[i].direction = this.link.direction;
+				}
+			}
+		}
+
+		//Check for moving pots hitting a wall
+		for (let i = 0; i < this.sprites.length; i++) { //Iterate and search for pots
+			if (this.sprites[i].spriteType() == 3) { //If index i is a pot...
+				for (let j = 0; j < this.sprites.length; j++) {
+					if (this.sprites[j].spriteType() == 0) {
+						if (this.sprites[i].isColliding(this.sprites[j])) {
+							this.sprites[i].direction = 0;
+							this.sprites[i].broken = true;
+						}
+					}
+				}
+			}
+		}
+		
+		
+	}
+
+	onclick(x, y)
+	{
+		for(let i = 0; i < this.sprites.length; i++)
+		{
+			this.sprites[i].onclick(x, y);
+		}
+	}
+
+	shootBoomerang() {
+		this.sprites.push(new Boomerang(this.link.x + this.link.imageWidth/2 + scrollPosX, this.link.y + this.link.imageHeight/2 + scrollPosY, this.link.direction,"boomerang1.png"));
+		//console.log("shot")
+	}
+}
+
+
+
+
+class View
+{
+	constructor(model)
+	{
+		this.model = model;
+		this.canvas = document.getElementById("myCanvas");
+	}
+
+	update()
+	{
+		let ctx = this.canvas.getContext("2d");
+		ctx.fillStyle = 'black';
+		ctx.clearRect(0, 0, 700, 500);
+		ctx.fillRect(0, 0,700, 500);
+		for(let i = 0; i < this.model.sprites.length; i++)
+		{
+			this.model.sprites[i].draw(ctx);
+			//ctx.drawImage(sprite.image, sprite.x, sprite.y);
+		}
+	}
+	checkRoomUpdate() {
+		let screenLength = 700;
+		let screenWidth = 500;
+		//Moving to left room
+		if (((scrollPosX == screenLength) && (scrollPosY == screenWidth)) || ((scrollPosX == screenLength) && (scrollPosY == 0))) { //Only applies when in rightmost rooms
+			if (this.model.link.x < 0) {
+				this.model.link.x = screenLength - this.model.link.imageWidth;
+				this.model.link.prevx = screenLength - this.model.link.imageWidth;
+				scrollPosX = 0;
+			}
+		}
+		//Moving to right room
+		if (((scrollPosX == 0) && (scrollPosY == 0)) || (scrollPosX == 0) && (scrollPosY == screenWidth))  { //Only applies when in leftmost rooms
+			if (this.model.link.x + this.model.link.imageWidth > screenLength) {
+				this.model.link.x = 0;
+				this.model.link.prevx = 0;
+				scrollPosX = screenLength;
+			}
+		}
+		//Moving up a room
+		if (((scrollPosX == 0) && (scrollPosY == screenWidth)) || ((scrollPosX == screenLength) && (scrollPosY == screenWidth))) { //Only applies when in downmost rooms
+			if (this.model.link.y < 0) {
+				this.model.link.y = screenWidth - this.model.link.imageHeight;
+				this.model.link.prevy = screenWidth - this.model.link.imageHeight;
+				scrollPosY = 0;
+			}
+		} 
+		//Moving down a room
+		if (((scrollPosX == 0) && (scrollPosY == 0)) || ((scrollPosX == screenLength) && (scrollPosY == 0))) { //Only applies when in upmost rooms
+			if (this.model.link.y + this.model.link.imageHeight > screenWidth) {
+				this.model.link.y = 0;
+				this.model.link.prevy = 0;
+				scrollPosY = screenWidth;
+			}
+		} 
+	}
+}
+
+
+
+
+
+
+
+class Controller
+{
+	constructor(model, view)
+	{
+		this.model = model;
+		this.view = view;
+		this.key_right = false;
+		this.key_left = false;
+		this.key_up = false;
+		this.key_down = false;
+		let self = this;
+		view.canvas.addEventListener("click", function(event) { self.onClick(event); });
+		document.addEventListener('keydown', function(event) { self.keyDown(event); }, false);
+		document.addEventListener('keyup', function(event) { self.keyUp(event); }, false);
+	}
+
+	onClick(event)
+	{
+		this.model.onclick(event.pageX - this.view.canvas.offsetLeft, event.pageY - this.view.canvas.offsetTop);
+	}
+
+	keyDown(event)
+	{
+		if(event.keyCode == 39) this.key_right = true;
+		else if(event.keyCode == 37) this.key_left = true;
+		else if(event.keyCode == 38) this.key_up = true;
+		else if(event.keyCode == 40) this.key_down = true;
+
+		//else if(event.keyCode == )
+	}
+
+	keyUp(event)
+	{
+		if(event.keyCode == 39) {this.key_right = false; this.model.link.isMoving = false;}
+		else if(event.keyCode == 37) {this.key_left = false; this.model.link.isMoving = false;}
+		else if(event.keyCode == 38) {this.key_up = false; this.model.link.isMoving = false;}
+		else if(event.keyCode == 40) {this.key_down = false; this.model.link.isMoving = false;}
+		else if(event.keyCode == 17) this.model.shootBoomerang();
+		//else if()
+	}
+
+	update()
+	{
+		if (this.key_left) {
+			this.model.link.direction = 1;
+			this.model.link.isMoving = true;
+		}
+		else if (this.key_right) {
+			this.model.link.direction = 2;
+			this.model.link.isMoving = true;
+		}
+		else if (this.key_up) {
+			this.model.link.direction = 3;
+			this.model.link.isMoving = true;
+		}
+		else if (this.key_down) {
+			this.model.link.direction = 4;
+			this.model.link.isMoving = true;
+		}
+		else {
+			this.model.link.isMoving = false;
+		}
+	}
+}
+
+
+
+
+
+class Game
+{
+	constructor()
+	{
+		this.model = new Model();
+		this.view = new View(this.model);
+		this.controller = new Controller(this.model, this.view);
+	}
+
+	onTimer()
+	{
+		this.view.checkRoomUpdate();
+		this.controller.update();
+		this.model.update();
+		this.view.update();
+	}
+}
+
+let scrollPosX = 0;
+let scrollPosY = 0;
+let game = new Game();
+let timer = setInterval(function() { game.onTimer(); }, 40);
+
+</script>
+
+</body>
